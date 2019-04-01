@@ -1,8 +1,8 @@
 import React, { Component } from "react"
-import styled, { createGlobalStyle } from "styled-components"
+import styled from "styled-components"
 import unionBy from "lodash/unionBy"
-import { Helmet } from "react-helmet"
 
+import Meta from "@Components/Meta"
 import Loader from "@Components/Loader"
 import Card from "@Components/Card"
 import SubmitButton from "@Components/SubmitButton"
@@ -82,20 +82,9 @@ class RoomAvailability extends Component {
   render() {
     return (
       <>
-        <Helmet>
-          <title>
-            {`Hilton Demo (${
-              this.state.boxes.filter(v => v.active).length
-            } reservations)`}
-          </title>
-          <style type="text/css">
-            {`
-                body {
-                  font-family: "Heebo", sans-serif;
-                }
-              `}
-          </style>
-        </Helmet>
+        <Meta
+          reservationCount={this.state.boxes.filter(v => v.active).length}
+        />
         <Form action="/submit" method="POST">
           <Section loaded={!this.state.loaded}>
             <Loader />
