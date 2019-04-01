@@ -1,91 +1,151 @@
-import React from 'react'
-import Link from 'next/link'
-import Head from '../components/head'
-import Nav from '../components/nav'
+import React, { Component } from "react"
+import styled, { createGlobalStyle } from "styled-components"
+import unionBy from "lodash/unionBy"
+import { Helmet } from "react-helmet"
 
-const Home = () => (
-  <div>
-    <Head title="Home" />
-    <Nav />
+import Loader from "@Components/Loader"
+import Card from "@Components/Card"
+import SubmitButton from "@Components/SubmitButton"
 
-    <div className="hero">
-      <h1 className="title">Welcome to Next!</h1>
-      <p className="description">
-        To get started, edit <code>pages/index.js</code> and save to reload.
-      </p>
+class RoomAvailability extends Component {
+  AVAILABLE_ROOM_COUNT = 4
+  LOCAL_STORAGE_KEY = "HiltonRoomFormData"
+  DEFAULT_BOX = { active: false, children: 0, adult: 1 }
 
-      <div className="row">
-        <Link href="https://github.com/zeit/next.js#getting-started">
-          <a className="card">
-            <h3>Getting Started &rarr;</h3>
-            <p>Learn more about Next on Github and in their examples</p>
-          </a>
-        </Link>
-        <Link href="https://open.segment.com/create-next-app">
-          <a className="card">
-            <h3>Examples &rarr;</h3>
-            <p>
-              Find other example boilerplates on the{' '}
-              <code>create-next-app</code> site
-            </p>
-          </a>
-        </Link>
-        <Link href="https://github.com/segmentio/create-next-app">
-          <a className="card">
-            <h3>Create Next App &rarr;</h3>
-            <p>Was this tool helpful? Let us know how we can improve it</p>
-          </a>
-        </Link>
-      </div>
-    </div>
+  state = {
+    loaded: false,
+    saving: false,
+    boxes: new Array(this.AVAILABLE_ROOM_COUNT).fill().reduce(
+      (aggregator, _, index) => [
+        ...aggregator,
+        {
+          ...this.DEFAULT_BOX,
+          roomId: index + 1,
+          active: !index,
+        },
+      ],
+      []
+    ),
+  }
 
-    <style jsx>{`
-      .hero {
-        width: 100%;
-        color: #333;
-      }
-      .title {
-        margin: 0;
-        width: 100%;
-        padding-top: 80px;
-        line-height: 1.15;
-        font-size: 48px;
-      }
-      .title,
-      .description {
-        text-align: center;
-      }
-      .row {
-        max-width: 880px;
-        margin: 80px auto 40px;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-around;
-      }
-      .card {
-        padding: 18px 18px 24px;
-        width: 220px;
-        text-align: left;
-        text-decoration: none;
-        color: #434343;
-        border: 1px solid #9b9b9b;
-      }
-      .card:hover {
-        border-color: #067df7;
-      }
-      .card h3 {
-        margin: 0;
-        color: #067df7;
-        font-size: 18px;
-      }
-      .card p {
-        margin: 0;
-        padding: 12px 0 0;
-        font-size: 13px;
-        color: #333;
-      }
-    `}</style>
-  </div>
-)
+  handleOccupantChanges = ({ room, occupant, value }) => {
+    const boxes = this.state.boxes.reduce(
+      (aggregate, box) => [
+        ...aggregate,
+        box.roomId === room ? { ...box, [occupant]: value } : box,
+      ],
+      []
+    )
 
-export default Home
+    this.setState({ boxes })
+  }
+
+  processActivationTriggering = id => {
+    const { boxes } = this.state
+    const { active } = boxes.find(box => box.roomId === id)
+
+    return active
+      ? boxes.map(box =>
+          box.roomId >= id ? { ...box, ...this.DEFAULT_BOX } : box
+        )
+      : boxes.map(box => (box.roomId <= id ? { ...box, active: true } : box))
+  }
+
+  handleActivationClick = roomId =>
+    this.setState({
+      boxes: this.processActivationTriggering(roomId),
+    })
+
+  handleSubmit = event => {
+    event.preventDefault()
+    this.setState({ saving: true }, () =>
+      localStorage.setItem(
+        this.LOCAL_STORAGE_KEY,
+        JSON.stringify(this.state.boxes)
+      )
+    )
+
+    setTimeout(() => this.setState({ saving: false }), 500)
+  }
+
+  componentDidMount() {
+    const savedBoxData = JSON.parse(
+      localStorage.getItem(this.LOCAL_STORAGE_KEY)
+    )
+    const boxes = savedBoxData
+      ? { boxes: unionBy(savedBoxData, this.state.boxes, "roomId") }
+      : {}
+
+    this.setState({ ...boxes, loaded: true })
+  }
+
+  render() {
+    return (
+      <>
+        <Helmet>
+          <title>
+            {`Hilton Demo (${
+              this.state.boxes.filter(v => v.active).length
+            } reservations)`}
+          </title>
+          <style type="text/css">
+            {`
+                body {
+                  font-family: "Heebo", sans-serif;
+                }
+              `}
+          </style>
+        </Helmet>
+        <Form action="/submit" method="POST">
+          <Section loaded={!this.state.loaded}>
+            <Loader />
+          </Section>
+          <Section loaded={this.state.loaded}>
+            {this.state.boxes.map(box => (
+              <Card
+                {...box}
+                key={box.roomId}
+                toggleHandler={this.handleActivationClick}
+                occupantHandler={this.handleOccupantChanges}
+              />
+            ))}
+          </Section>
+          <Section loaded={this.state.loaded}>
+            <SubmitButton
+              submitHandler={this.handleSubmit}
+              saving={this.state.saving}
+            />
+          </Section>
+        </Form>
+      </>
+    )
+  }
+}
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-content: space-between;
+  flex: 1;
+  flex-wrap: wrap;
+  margin-top: 5rem;
+  margin-left: 10%;
+  margin-right: 10%;
+  min-height: 10rem;
+`
+
+Form.displayName = "Form"
+
+const Section = styled.section.attrs(props => ({
+  displayable: props.loaded ? "flex" : "none",
+}))`
+  display: ${props => props.displayable};
+  justify-content: flex-start;
+  align-content: space-between;
+  flex: 1;
+  flex-wrap: wrap;
+`
+Section.displayName = "Section"
+
+export default RoomAvailability
