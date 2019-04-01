@@ -2,8 +2,62 @@
   "name": "create-next-example-app",
   "scripts": {
     "dev": "next",
+    "test": "jest",
     "build": "next build",
     "start": "next start"
+  },
+  "eslintConfig": {
+    "parser": "babel-eslint",
+    "parserOptions": {
+      "ecmaFeatures": {
+        "jsx": true,
+        "modules": true
+      }
+    },
+    "plugins": [
+      "prettier"
+    ],
+    "rules": {
+      "prettier/prettier": "error"
+    }
+  },
+  "prettier": {
+    "trailingComma": "es5",
+    "semi": false
+  },
+  "jest": {
+    "collectCoverage": true,
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/.next/",
+      "<rootDir>/node_modules/"
+    ]
+  },
+  "babel": {
+    "presets": [
+      "next/babel"
+    ],
+    "plugins": [
+      [
+        "styled-components",
+        {
+          "ssr": true,
+          "displayName": true,
+          "preprocess": true
+        }
+      ],
+      [
+        "module-resolver",
+        {
+          "alias": {
+            "@Components": "./components",
+            "@Pages": "./pages"
+          }
+        }
+      ]
+    ]
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.2.17",
