@@ -61,6 +61,11 @@ const Label = styled.label`
   flex-direction: column;
   flex: 1;
   padding: 5px;
+
+  > p {
+    margin: 0;
+    font-size: 0.85rem;
+  }
 `
 
 Label.displayName = "Label"
